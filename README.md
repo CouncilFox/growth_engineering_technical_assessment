@@ -1,56 +1,171 @@
 # Growth Engineering Technical Assessment
 
-This assessment is meant to give candidates an opportunity to show off their
-abilities to quickly and effectively stand up "demo ready" environments and
-applications to be shown to a potential Customer at an in-person event.  The
-quality of the delivery is meant to meet the standards of a single-day, but
-multiple use, demo environment e.g. setup and tear down should be easy enough
-that re-deploying the environment can be done while customer watches.
+This repository demonstrates the ability to quickly stand up and tear down a demo-ready Kubernetes environment to show a small Golang API to a customer.
+
+## Original Instructions
+
+The original instructions provided by the hiring manager are preserved in `ORIGINAL_README.md` for reference.
 
 ## Prerequisites
 
-_A working Kubernetes_: This can be a local cluster as provided by Docker
-Desktop, k3d, kind, or otherwise.  It could also be managed Kubernetes such as EKS,
-AKS, or DOKS.  Please specify which in your submission below:
+- A working Kubernetes environment. For this assessment, Docker Desktop's built-in Kubernetes was used.
+- Docker installed and running.
+- Internet access to push and pull images from ttl.sh
+- Optional: `make` (if using the Makefile approach), Helm (if testing Helm deployment).
 
-Kubernetes "flavor" used in submission: `<Your K8s Flavor Goes Here>`
+Kubernetes "flavor" used in submission: **Docker Desktop Kubernetes**
 
-**DO NOT** rely on additional cloud-provided managed services for your submission.
-The grader will be evaluating your submission in their local infrastructure
-which will likely differ from your environment and it is expected to work for
-them as well.  The intent for providing your flavor is to help resolve any
-"surprising" results of a managed K8s provider.
+**Note:** No external managed services (like EKS, AKS, etc.) are required. The application and all necessary components run locally.
 
-## Assignment
+## Overview
 
-Make a copy of this Template Repository to your own GitHub account and work
-within it.  Please push early and often though you will be submitting a single
-compressed artifact of the repository (see [Deliverables](#deliverables) below).
+The provided application is a simple Golang HTTP server that was left unchanged:
 
-You will build and deploy the small Golang API as implemented in `app/` to your
-Kubernetes cluster.
+- Serves on `0.0.0.0:8080`.
+- Provides a health endpoint at `/healthz` returning `ok`.
+- Provides a version endpoint at `/version`.
+- Greets users at `/`, optionally by name.
 
-If the containerized application requires an external registry to
-(temporarily) host the image use [`ttl.sh`](https://ttl.sh) with no more than a
-2h TTL.
+The repository updates include multiple ways to build, deploy, and tear down the application:
+
+1. **Makefile Based:**
+
+   - **Deploy:** `make deploy`
+   - **Teardown:** `make teardown`
+
+2. **Bash Scripts Based (No Make Required):**
+
+   - **Deploy:** `./scripts/deploy.sh`
+   - **Teardown:** `./scripts/teardown.sh`
+
+3. **Helm Chart Based (Requires Helm):**
+   - **Deploy:**
+     ```bash
+     docker build -t ttl.sh/growth-engineering:2h ./app
+     docker push ttl.sh/growth-engineering:2h
+     helm install growth-engineering ./chart
+     ```
+   - **Teardown:**
+     ```bash
+     helm uninstall growth-engineering
+     ```
+
+All three methods produce the same outcome: a running Golang application accessible within the cluster.
+
+## Recommended Instructions for Evaluators
+
+Follow these steps to replicate and validate the environment setup and teardown.
+
+### 1. Start Fresh (Optional but Recommended)
+
+Before testing a given method, ensure your cluster is clean:
+
+```bash
+helm uninstall growth-engineering || true
+kubectl delete -f ./app/manifest.yaml || true
+```
+
+This ensures no previous deployments conflict with your test.
+
+### 2. Using the Makefile
+
+**Deploy:**
+
+```bash
+make deploy
+```
+
+This command builds and pushes the Docker image to `ttl.sh`, then applies `app/manifest.yaml` to your cluster.
+
+**Verify Running State:**
+
+```bash
+kubectl get pods
+kubectl port-forward svc/growth-engineering-service 8080:8080 &
+curl http://localhost:8080/healthz
+# Expect "ok"
+```
+
+**Teardown:**
+
+```bash
+make teardown
+```
+
+This deletes all Kubernetes resources applied. Confirm with `kubectl get pods`—there should be none remaining.
+
+### 3. Using Bash Scripts
+
+From the project root:
+
+**Deploy:**
+
+```bash
+./scripts/deploy.sh
+```
+
+This script:
+
+- Builds and pushes the image.
+- Applies the manifests.
+- Waits for the Pods to become ready.
+- Checks health and prints a formatted summary with colors and separators.
+
+**Verify:**
+The Bash script will conduct health checks of its own, but if independent verification is desired, the same commands from above can be used:
+
+```bash
+kubectl get pods
+kubectl port-forward svc/growth-engineering-service 8080:8080 &
+curl http://localhost:8080/healthz
+# Expect "ok"
+```
+
+**Teardown:**
+
+```bash
+./scripts/teardown.sh
+```
+
+This removes the deployed resources. Check with `kubectl get pods` to confirm.
+
+### 4. Using Helm
+
+If you have Helm installed, you can use the provided chart for a more parameterized and maintainable approach.
+
+**Deploy:**
+
+```bash
+docker build -t ttl.sh/growth-engineering:2h ./app
+docker push ttl.sh/growth-engineering:2h
+helm install growth-engineering ./chart
+```
+
+**Verify:**
+
+```bash
+kubectl get pods
+kubectl port-forward svc/growth-engineering 8080:8080 &
+curl http://localhost:8080/healthz
+# Expect "ok"
+```
+
+**Teardown:**
+
+```bash
+helm uninstall growth-engineering
+```
+
+Check `kubectl get pods` to ensure the cluster is clean.
 
 ## Deliverables
 
-When you are done please return a `.tar.gz` or `.zip` compressed copy of your
-work (including the `.git/` directory) to the hiring manager by way of email.
-That copy will be graded but please _also_ push your changes to your copy of the
-template repository (and include the URL in your email) as a backup plan (in
-case the compressed file gets corrupted or otherwise is unusable).
+- [x] Updated README with instructions.
+- [x] A single command to build and deploy (e.g., `make deploy` or `./scripts/deploy.sh`).
+- [x] A single command to teardown (e.g., `make teardown` or `./scripts/teardown.sh`).
 
-* [ ] Updated README with any updates required for the grader to evaluate your
-  solution.
+## Submission
 
-* [ ] A _single command_ to build and deploy the application to a Kubernetes
-  cluster.
+As requested, a .tar.gz of the entire repository (including .git/ directory) will be emailed to the hiring manager. The updated code is also available on [my personal GitHub repository](https://github.com/CouncilFox/growth_engineering_technical_assessment)
 
-Setup/Deploy Command: `<your command here>`
-
-* [ ] A _single command_ to tear down the application to return the cluster to
-  its original state.
-
-Teardown Command: `<your command here>`
+This repository URL will also be included in the submission email for convenience.

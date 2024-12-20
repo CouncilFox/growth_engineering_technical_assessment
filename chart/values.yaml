@@ -1,0 +1,18 @@
+image:
+  repository: ttl.sh/growth-engineering
+  tag: "2h"
+  pullPolicy: IfNotPresent
+
+replicaCount: 1
+
+service:
+  type: ClusterIP
+  port: 8080
+
+readinessProbe:
+  initialDelaySeconds: 5
+  periodSeconds: 5
+
+livenessProbe:
+  initialDelaySeconds: 10
+  periodSeconds: 10

@@ -3,8 +3,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: growth-engineering-deployment
-  labels:
-    app: growth-engineering
 spec:
   replicas: 1
   selector:
@@ -20,6 +18,19 @@ spec:
           image: ttl.sh/growth-engineering:2h
           ports:
             - containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+
 
 ---
 apiVersion: v1
