@@ -1,7 +1,38 @@
 ---
 apiVersion: apps/v1
 kind: Deployment
+metadata:
+  name: growth-engineering-deployment
+  labels:
+    app: growth-engineering
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: growth-engineering
+  template:
+    metadata:
+      labels:
+        app: growth-engineering
+    spec:
+      containers:
+        - name: app
+          image: ttl.sh/growth-engineering:2h
+          ports:
+            - containerPort: 8080
 
 ---
 apiVersion: v1
 kind: Service
+metadata:
+  name: growth-engineering-service
+  labels:
+    app: growth-engineering
+spec:
+  type: ClusterIP
+  selector:
+    app: growth-engineering
+  ports:
+    - port: 8080
+      targetPort: 8080
+

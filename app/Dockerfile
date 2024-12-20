@@ -1,5 +1,10 @@
-FROM cgr.dev/chainguard/go:latest
+FROM cgr.dev/chainguard/go:latest AS builder
+WORKDIR /app
+COPY ./src/ .
+RUN go build -o app main.go
 
-# build your application image here
-
-ENTRYPOINT [ "app" ]
+FROM cgr.dev/chainguard/go:latest AS runner
+WORKDIR /app
+COPY --from=builder /app/app .
+EXPOSE 8080
+ENTRYPOINT [ "/app/app" ]
